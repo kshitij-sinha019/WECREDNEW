@@ -5,7 +5,7 @@ from groq import Groq
 st.set_page_config(page_title="WeCredit Chatbot", page_icon="💳", layout="centered")
 
 # Load API Key from Secrets (Ensure it's set in Streamlit Cloud)
-api_key = st.secrets["GROQ_API_KEY"]
+api_key = st.secrets["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"]
 client = Groq(api_key=api_key)
 
 # Header UI
