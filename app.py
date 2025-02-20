@@ -4,8 +4,8 @@ from groq import Groq
 # Page Configuration
 st.set_page_config(page_title="WeCredit Chatbot", page_icon="💳", layout="centered")
 
-# Load API Key from Secrets (Ensure it's set in Streamlit Cloud)
-api_key = st.secrets["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"]
+# API Key (Direct Assignment)
+api_key = "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"
 client = Groq(api_key=api_key)
 
 # Header UI
@@ -35,7 +35,7 @@ if user_input := st.chat_input("💬 Ask me anything..."):
     try:
         with st.spinner("⏳ Thinking..."):
             response = client.chat.completions.create(
-                messages=[{"role": "system", "content": "You are a financial AI chatbot."}] + st.session_state.messages[-5:],
+                messages=[{"role": "system", "content": "You are a financial AI chatbot."}] + st.session_state.messages[-5:],  # Last 5 messages only
                 model="llama-3.3-70b-versatile",
                 max_tokens=300
             )
@@ -46,4 +46,4 @@ if user_input := st.chat_input("💬 Ask me anything..."):
                 st.markdown(bot_response)
 
     except Exception as e:
-        st.error(f"❌ Error: {str(e)}")
+        st.error("❌ API Error: Unable to process your request. Please try again later.")
