@@ -1,41 +1,47 @@
-import streamlit as st
-import requests
+from flask import Flask, request, jsonify
+from groq import Groq
+from flask_cors import CORS  # Enable CORS for frontend communication
 
+app = Flask(__name__)
+CORS(app, resources={r"/chat": {"origins": "*"}})  # Allow all frontend requests
 
-st.set_page_config(page_title="WeCredit Chatbot", layout="wide")
+# Load API key
+api_key = "your_groq_api_key"  # Replace with your actual API key
+if not api_key:
+    raise ValueError("Missing API key. Set your API key before running.")
 
-st.title("💳 WeCredit FinTech Chatbot")
-st.write("Ask me anything about loans, credit cards, or financial services!")
+client = Groq(api_key=api_key)
 
-API_URL = "http://127.0.0.1:5000/chat"  # Make sure your backend is running
+# Default Homepage Route
+@app.route('/', methods=['GET'])
+def home():
+    return "Welcome to the WeCredit Chatbot API! Use /chat for interactions."
 
-# Chat History
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
+# Chatbot Route
+@app.route('/chat', methods=['POST'])
+def chat():
+    try:
+        data = request.json
+        user_message = data.get("message", "")
 
-for msg in st.session_state["messages"]:
-    with st.chat_message(msg["role"]):
-        st.write(msg["content"])
+        if not user_message:
+            return jsonify({"error": "Message is required"}), 400
 
-# User Input
-user_input = st.chat_input("Type your message...")
+        # Call Groq API for response
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a chatbot for WeCredit, specializing in loans, credit cards, and financial topics."},
+                {"role": "user", "content": user_message}
+            ],
+            model="llama-3.3-70b-versatile",
+            max_tokens=250  # ✅ Reduced tokens for faster response
+        )
 
-if user_input:
-    with st.chat_message("user"):
-        st.write(user_input)
+        bot_response = chat_completion.choices[0].message.content
+        return jsonify({"response": bot_response})
 
-    st.session_state["messages"].append({"role": "user", "content": user_input})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            try:
-                response = requests.post(API_URL, json={"message": user_input}, timeout=10)  # Set timeout
-                if response.status_code == 200:
-                    bot_reply = response.json().get("response", "I'm not sure.")
-                else:
-                    bot_reply = "Error: Slow response from API."
-            except requests.exceptions.Timeout:
-                bot_reply = "Error: API request timed out."
-
-        st.write(bot_reply)
-        st.session_state["messages"].append({"role": "assistant", "content": bot_reply})
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)  # Make sure it's accessible
