@@ -1,47 +1,45 @@
 from flask import Flask, request, jsonify
 from groq import Groq
-from flask_cors import CORS  # Enable CORS for frontend communication
+from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/chat": {"origins": "*"}})  # Allow all frontend requests
+CORS(app, resources={r"/chat": {"origins": "*"}})  # Allow all origins
 
-# Load API key
-api_key = "your_groq_api_key"  # Replace with your actual API key
+# Load API Key
+api_key = "your_groq_api_key"  # Replace with actual key
 if not api_key:
-    raise ValueError("Missing API key. Set your API key before running.")
+    raise ValueError("API key missing. Set it before running.")
 
 client = Groq(api_key=api_key)
 
-# Default Homepage Route
 @app.route('/', methods=['GET'])
 def home():
-    return "Welcome to the WeCredit Chatbot API! Use /chat for interactions."
+    return "WeCredit Chatbot API is running."
 
-# Chatbot Route
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
         data = request.json
-        user_message = data.get("message", "")
+        user_message = data.get("message", "").strip()
 
         if not user_message:
-            return jsonify({"error": "Message is required"}), 400
+            return jsonify({"error": "Message cannot be empty."}), 400
 
-        # Call Groq API for response
+        # Generate response using Groq API
         chat_completion = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": "You are a chatbot for WeCredit, specializing in loans, credit cards, and financial topics."},
+                {"role": "system", "content": "You are a chatbot for WeCredit, helping users with financial queries."},
                 {"role": "user", "content": user_message}
             ],
             model="llama-3.3-70b-versatile",
-            max_tokens=250  # ✅ Reduced tokens for faster response
+            max_tokens=150  # 🔹 Reduce for speed
         )
 
         bot_response = chat_completion.choices[0].message.content
         return jsonify({"response": bot_response})
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)  # Make sure it's accessible
+    app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)  # 🔹 Faster responses
